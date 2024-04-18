@@ -44,7 +44,9 @@ class Menu(discord.ui.View):
         embed = discord.Embed(color = discord.Color.random())
         embed.set_author(name=f"Utility🔧")
         embed.add_field(name="/help", value="Lists all the commands available!", inline=False)
+        embed.add_field(name="/poll", value="Sets up a poll for your server.", inline=False)
         embed.add_field(name="/status", value="Bot Status.", inline=False)
+        embed.add_field(name="/purge", value="Deletes an amount of messages as specified by user.", inline=False)
         embed.add_field(name="/set_welcome", value="Sets welcome message for your server!", inline=False)
         embed.add_field(name="/unset_welcome", value="Removes welcome message for your server.", inline=False)
         await interaction.response.edit_message(embed=embed)
@@ -63,7 +65,9 @@ class Menu(discord.ui.View):
         embed.set_author(name=f"Cool Commands😎")
         embed.add_field(name="/hello", value="Mutton-Chan says hello.", inline=False)
         embed.add_field(name="/imagesearch", value="Searches an image from the Internet", inline=False)
+        embed.add_field(name="/newyearsalert", value="Countdown to New Years", inline=False)
         embed.add_field(name="/prompt", value="Mutton-Chan would like to tell you a story!", inline=False)
+        embed.add_field(name="/avatar", value="Returns the image of another user's (or your own) avatar!", inline=False)
         await interaction.response.edit_message(embed=embed)
 
 # displays an embed with a list of commands
@@ -87,7 +91,7 @@ async def hello(interaction: discord.Interaction):
 @tree.command(name = "status", description = "Check bot status",)
 async def ping(interaction: discord.Interaction):
     bot_latency = round(client.latency*1000)
-    emb = discord.Embed(title="Bot Status", description = f"Status", color = discord.Color.random())
+    emb = discord.Embed(title="Bot Status", description ="", color = discord.Color.random())
 
     emb.set_author(name=f"Requested by @{interaction.user.name}", icon_url=interaction.user.avatar)
     emb.set_thumbnail(url = interaction.guild.icon)
@@ -158,6 +162,23 @@ async def emb2(interaction: discord.Interaction, name:str):
     else:
         await interaction.response.send_message("No image found for the given query.")
 
+@tree.command(name = "poll", description = "Start a poll")
+async def rearrange(interaction: discord.Interaction, question:str, choice1:str, choice2:str):
+    emb = discord.Embed(title=f"{question}", description = "Choose an option: ", color = discord.Color.random())
+        # Use left and right arrow emojis instead of numbers
+    emb.add_field(name="Option 1", value=f"1️⃣ {choice1}", inline=True)
+    emb.add_field(name="Option 2", value=f"2️⃣ {choice2}", inline=True)
+    emb.set_author(name=f"Requested by @{interaction.user.name}", icon_url=interaction.user.avatar)
+    emb.set_footer(text="Why can't humans just agree with one another?")
+
+    # Send the menu as a message
+    menu_message = await interaction.response.send_message(embed=emb)
+    menu_message = await interaction.original_response()
+
+    # Add reactions to the menu for user selection
+    for emoji in ["1️⃣", "2️⃣"]:
+        await menu_message.add_reaction(emoji)
+
 selected_options = {}
 @tree.command(name = "rockpaperscissors", description = "Play Rock, Paper, Scissors against Mutton-Chan!")
 async def rearrange(interaction: discord.Interaction):
@@ -176,6 +197,14 @@ async def rearrange(interaction: discord.Interaction):
     # Add reactions to the menu for user selection
     for emoji in ['🪨', '📝', '✂️']:
         await menu_message.add_reaction(emoji)
+
+@tree.command(name="avatar", description = "Displays the avatar of a user.")
+async def avatar(interaction: discord.Interaction, member: discord.Member):
+    emb = discord.Embed(title="User Avatar:", color=discord.Color.random())
+    emb.set_author(name=f"Requested by @{interaction.user.name}", icon_url=interaction.user.avatar)
+    emb.add_field(name=f"@{member}'s Avatar:", value="", inline=False)
+    emb.set_image(url=member.avatar)
+    await interaction.response.send_message(embed=emb)
 
 @client.event
 async def on_raw_reaction_add(payload):
@@ -215,6 +244,18 @@ async def on_raw_reaction_add(payload):
         selected_options[user_id] = True
     except Exception as e:
         print(f"An error occurred: {e}")
+
+# Moderation Commands
+@tree.command(name = "purge", description = "Purges a set amount of Messages.")
+async def purge(interaction: discord.Interaction, amount: int):
+    if interaction.user.guild_permissions.manage_messages:
+        channel = interaction.channel
+        async for message in channel.history(limit=amount):
+            await message.delete()
+                
+        await interaction.response.send_message(f"Deleted {amount} messages! Requested by {interaction.user.mention}.")
+    else:
+        await interaction.response.send_message("No Permissions? Womp Womp.")
 
 #on bot
 @client.event
