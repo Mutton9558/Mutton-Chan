@@ -10,6 +10,7 @@ import requests
 import json
 import tracemalloc
 from datetime import datetime
+import asyncio
 
 load_dotenv()
 
@@ -44,9 +45,11 @@ class Menu(discord.ui.View):
         embed = discord.Embed(color = discord.Color.random())
         embed.set_author(name=f"Utility🔧")
         embed.add_field(name="/help", value="Lists all the commands available!", inline=False)
-        embed.add_field(name="/poll", value="Sets up a poll for your server.", inline=False)
+        embed.add_field(name="/poll", value="Sets up a poll for your server. (will discontinue soon)", inline=False)
         embed.add_field(name="/status", value="Bot Status.", inline=False)
         embed.add_field(name="/purge", value="Deletes an amount of messages as specified by user.", inline=False)
+        embed.add_field(name = "/blacklist", value="Blacklists a word on the server", inline=False)
+        embed.add_field(name = "/unblacklist", value="Unblacklists a blacklisted word on the server", inline=False)
         embed.add_field(name="/set_welcome", value="Sets welcome message for your server!", inline=False)
         embed.add_field(name="/unset_welcome", value="Removes welcome message for your server.", inline=False)
         await interaction.response.edit_message(embed=embed)
@@ -254,8 +257,67 @@ async def purge(interaction: discord.Interaction, amount: int):
             await message.delete()
                 
         await interaction.response.send_message(f"Deleted {amount} messages! Requested by {interaction.user.mention}.")
+        await asyncio.sleep(5)
+        async for message in channel.history(limit=1):
+            await message.delete()
     else:
         await interaction.response.send_message("No Permissions? Womp Womp.")
+
+try:
+    with open('blacklist.json', 'r') as file1:
+        blacklist_list = json.load(file1)
+except FileNotFoundError:
+    blacklist_list = {}
+
+@tree.command(name="blacklist", description="Blacklists certain words")
+async def blacklist(interaction: discord.Interaction, word: str):
+    if interaction.user.guild_permissions.manage_messages:
+        server_id = str(interaction.guild.id)
+        if server_id not in blacklist_list:
+            blacklist_list[server_id] = {}
+            if word not in blacklist_list[server_id]:
+                blacklist_list[server_id][word] = True
+                with open('blacklist.json', 'w') as file:
+                    json.dump(blacklist_list, file)  # Write the updated list back to the file
+                await interaction.response.send_message("Blacklisted a word")
+            else:
+                if blacklist_list[server_id][word] == False:
+                    blacklist_list[server_id][word] = True
+                    with open('blacklist.json', 'w') as file:
+                        json.dump(blacklist_list, file)  # Write the updated list back to the file
+                    await interaction.response.send_message("Blacklisted a word")
+                else:
+                    await interaction.response.send_message("Word is already blacklisted!")
+        else:
+            if word not in blacklist_list[server_id]:
+                blacklist_list[server_id][word] = True
+                with open('blacklist.json', 'w') as file:
+                    json.dump(blacklist_list, file)  # Write the updated list back to the file
+                await interaction.response.send_message("Blacklisted a word")
+            else:
+                if blacklist_list[server_id][word] == False:
+                    blacklist_list[server_id][word] = True
+                    with open('blacklist.json', 'w') as file:
+                        json.dump(blacklist_list, file)  # Write the updated list back to the file
+                    await interaction.response.send_message("Blacklisted a word")
+                else:
+                    await interaction.response.send_message("Word is already blacklisted!")
+    else:
+        await interaction.response.send_message("Who do you think you are?")
+
+@tree.command(name="unblacklist", description="Blacklists certain words")
+async def blacklist(interaction: discord.Interaction, word: str):
+    if interaction.user.guild_permissions.manage_messages:
+        server_id = str(interaction.guild.id)
+        if blacklist_list[server_id][word] ==  True:
+            blacklist_list[server_id][word] = False 
+            with open('blacklist.json', 'w')as file:
+                json.dump(blacklist_list, file)
+            await interaction.response.send_message("Unblacklisted a word")
+        else:
+            await interaction.response.send_message("Word has already been unblacklisted Mr. Alzheimers")
+    else:
+        await interaction.response.send_message("I went to mod town and nobody knew you")
 
 #on bot
 @client.event
@@ -272,6 +334,17 @@ async def on_message(message):
             await message.channel.send(f"Go do something more productive")
         else:
             await message.channel.send(f"Get a life")
+
+@client.event
+async def on_message(message):
+    if not message.author.bot:
+        server_id = str(message.guild.id)
+        if server_id in blacklist_list:
+            for word, is_blacklisted in blacklist_list[server_id].items():
+                if is_blacklisted and word in message.content.lower():
+                    await message.delete()
+                    await message.channel.send(f"{message.author} said a bad word it hurt my feelings")
+                    break  # Exit the loop once a blacklisted word is found
 
 # Load welcome function status from a JSON file
 try:
