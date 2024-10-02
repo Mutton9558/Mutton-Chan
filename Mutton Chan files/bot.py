@@ -60,6 +60,7 @@ class Menu(discord.ui.View):
         embed.set_author(name=f"Fun👀")
         embed.add_field(name="/coinflip", value="Flips a coin!", inline=False)
         embed.add_field(name="/rockpaperscissors", value="Fight Mutton-Chan in a game of Rock Papers Scissors!", inline=False)
+        embed.add_field(name="/statcreator", value="What would your character stats be?", inline=False)
         await interaction.response.edit_message(embed=embed)
 
     @discord.ui.button(label="Cool Commands😎", style=discord.ButtonStyle.blurple)
@@ -320,20 +321,38 @@ async def blacklist(interaction: discord.Interaction, word: str):
         await interaction.response.send_message("I went to mod town and nobody knew you")
 
 @tree.command(name="statcreator", description="Creates imaginary stats for your character!")
-async def statsCreator(interaction: discord.Interaction):
+async def statcreator(interaction: discord.Interaction):
     user = interaction.user.name
-    strength = random.randint(0, 100)
-    dexterity = random.randint(0, 100-strength)
-    tenacity = random.randint(0, 100-strength-dexterity)
-    wisdom = random.randint(0, 100-tenacity-strength-dexterity)
+    COUNT = 100
+    strength, tenacity, dexterity, wisdom = 0, 0, 0, 0
+    # strength = random.randint(0, 100)
+    # dexterity = random.randint(0, 100-strength)
+    # tenacity = random.randint(0, 100-strength-dexterity)
+    # wisdom = random.randint(0, 100-tenacity-strength-dexterity)
+    while COUNT != 0:
+        x = random.randint(0,3)
+        if x == 0:
+            strength += random.randint(0, COUNT)
+        elif x == 1:
+            tenacity += random.randint(0, COUNT)
+        elif x== 2:
+            dexterity += random.randint(0, COUNT)
+        elif x == 3:
+            wisdom += random.randint(0, COUNT)
+        else:
+            print("Error")
+        COUNT = (100-strength-tenacity-dexterity-wisdom)
+
     emb = discord.Embed(title=f"{user}'s stats!", description = "Still weaker than Mutton-Chan...", color = discord.Color.random())
-    emb.set_thumbnail(icon_url = interaction.user.avatar)
+    emb.set_thumbnail(url = interaction.user.avatar)
     emb.add_field(name="Strength: ", value=f"{strength}%", inline=False)
     emb.add_field(name="Tenacity: ", value=f"{tenacity}%", inline=False)
     emb.add_field(name="Dexterity: ", value=f"{dexterity}%", inline=False)
     emb.add_field(name="Wisdom: ", value=f"{wisdom}%", inline=False)
     emb.set_author(name=f"Requested by @{interaction.user.name}", icon_url=interaction.user.avatar)
     emb.set_footer(text="What? Did you really think you were stronger than this?")
+
+    await interaction.response.send_message(embed=emb)
 
 #on bot
 @client.event
