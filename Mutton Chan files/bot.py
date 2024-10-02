@@ -319,6 +319,22 @@ async def blacklist(interaction: discord.Interaction, word: str):
     else:
         await interaction.response.send_message("I went to mod town and nobody knew you")
 
+@tree.command(name="statcreator", description="Creates imaginary stats for your character!")
+async def statsCreator(interaction: discord.Interaction):
+    user = interaction.user.name
+    strength = random.randint(0, 100)
+    dexterity = random.randint(0, 100-strength)
+    tenacity = random.randint(0, 100-strength-dexterity)
+    wisdom = random.randint(0, 100-tenacity-strength-dexterity)
+    emb = discord.Embed(title=f"{user}'s stats!", description = "Still weaker than Mutton-Chan...", color = discord.Color.random())
+    emb.set_thumbnail(icon_url = interaction.user.avatar)
+    emb.add_field(name="Strength: ", value=f"{strength}%", inline=False)
+    emb.add_field(name="Tenacity: ", value=f"{tenacity}%", inline=False)
+    emb.add_field(name="Dexterity: ", value=f"{dexterity}%", inline=False)
+    emb.add_field(name="Wisdom: ", value=f"{wisdom}%", inline=False)
+    emb.set_author(name=f"Requested by @{interaction.user.name}", icon_url=interaction.user.avatar)
+    emb.set_footer(text="What? Did you really think you were stronger than this?")
+
 #on bot
 @client.event
 async def on_ready():
