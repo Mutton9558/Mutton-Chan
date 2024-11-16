@@ -11,6 +11,8 @@ import json
 import tracemalloc
 from datetime import datetime
 import asyncio
+import tweepy
+import time
 
 load_dotenv()
 
@@ -250,19 +252,28 @@ async def on_raw_reaction_add(payload):
         print(f"An error occurred: {e}")
 
 # Moderation Commands
-@tree.command(name = "purge", description = "Purges a set amount of Messages.")
+@tree.command(name="purge", description="Purges a set amount of messages.")
 async def purge(interaction: discord.Interaction, amount: int):
-    if interaction.user.guild_permissions.manage_messages:
-        channel = interaction.channel
-        async for message in channel.history(limit=amount):
-            await message.delete()
-                
-        await interaction.response.send_message(f"Deleted {amount} messages! Requested by {interaction.user.mention}.")
-        await asyncio.sleep(5)
-        async for message in channel.history(limit=1):
-            await message.delete()
-    else:
-        await interaction.response.send_message("No Permissions? Womp Womp.")
+    # Check permissions
+    if not interaction.user.guild_permissions.manage_messages:
+        await interaction.response.send_message("No Permissions? Womp Womp.", ephemeral=True)
+        return
+    
+    # Defer response to avoid timeout
+    await interaction.response.defer(ephemeral=True)
+    
+    channel = interaction.channel
+    deleted_messages = await channel.purge(limit=amount)
+    message_count = len(deleted_messages)
+
+    # Send a confirmation message
+    confirmation_message = await channel.send(
+        f"Deleted {message_count} messages! Requested by {interaction.user.mention}."
+    )
+
+    # Wait and delete the confirmation message
+    await asyncio.sleep(5)
+    await confirmation_message.delete()
 
 try:
     with open('blacklist.json', 'r') as file1:
@@ -464,5 +475,6 @@ async def on_member_join(member):
     else:
         print(f"No roles assigned to user in {str(member.guild.name)}")
 
-#for 24/7 go replit
-client.run(TOKEN)
+if __name__ == "__main__":
+    #for 24/7 go replit
+    client.run(TOKEN)
