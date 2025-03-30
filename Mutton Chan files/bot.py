@@ -11,8 +11,9 @@ import json
 import tracemalloc
 from datetime import datetime
 import asyncio
-import tweepy
-import time
+import cv2
+import numpy as np
+from io import BytesIO
 
 load_dotenv()
 
@@ -364,6 +365,25 @@ async def statcreator(interaction: discord.Interaction):
     emb.set_footer(text="What? Did you really think you were stronger than this?")
 
     await interaction.response.send_message(embed=emb)
+
+# add pic to tombstone shi
+@tree.command(name="rip", description="Adds user's picture to a tombstone")
+async def rip(interaction: discord.Interaction, member: discord.Member):
+    selected_user = member.display_avatar.url
+    # selected_user is a url, we use urllib to get data of image, represent it via numpy (opencv stores img data via np tables) and manipulate via opencv
+    response = requests.get(selected_user, stream=True)
+    img_array = np.asarray(bytearray(response.content), dtype=np.uint8)
+    avatar_img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+    avatar_img = cv2.cvtColor(avatar_img, cv2.COLOR_BGR2GRAY)
+    avatar_resized = cv2.resize(avatar_img, (216, 194))
+    tombstone = cv2.imread('img/tombstone.jpg', cv2.IMREAD_COLOR)
+    avatar_resized = cv2.cvtColor(avatar_resized, cv2.COLOR_GRAY2BGR)
+    tombstone[242:436, 163:379] = avatar_resized
+
+    _, buffer = cv2.imencode('.png', tombstone)
+    image_stream = BytesIO(buffer)
+    file = discord.File(fp=image_stream, filename="rip.png")
+    await interaction.response.send_message(file=file)    
 
 #on bot
 @client.event
