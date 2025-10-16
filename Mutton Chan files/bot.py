@@ -32,6 +32,7 @@ print("Module Name: {}".format(__name__))
 #starting bot
 intents = discord.Intents.default()
 intents.message_content = True
+intents.messages = True
 intents.members = True
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
@@ -369,13 +370,15 @@ async def statcreator(interaction: discord.Interaction):
 # add pic to tombstone shi
 @tree.command(name="rip", description="Adds user's picture to a tombstone")
 async def rip(interaction: discord.Interaction, member: discord.Member):
+    await interaction.response.defer()  # Acknowledge to avoid timeout
+
     selected_user = member.display_avatar.url
-    # selected_user is a url, we use urllib to get data of image, represent it via numpy (opencv stores img data via np tables) and manipulate via opencv
     response = requests.get(selected_user, stream=True)
     img_array = np.asarray(bytearray(response.content), dtype=np.uint8)
     avatar_img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
     avatar_img = cv2.cvtColor(avatar_img, cv2.COLOR_BGR2GRAY)
     avatar_resized = cv2.resize(avatar_img, (216, 194))
+
     tombstone = cv2.imread('img/tombstone.jpg', cv2.IMREAD_COLOR)
     avatar_resized = cv2.cvtColor(avatar_resized, cv2.COLOR_GRAY2BGR)
     tombstone[242:436, 163:379] = avatar_resized
@@ -383,7 +386,9 @@ async def rip(interaction: discord.Interaction, member: discord.Member):
     _, buffer = cv2.imencode('.png', tombstone)
     image_stream = BytesIO(buffer)
     file = discord.File(fp=image_stream, filename="rip.png")
-    await interaction.response.send_message(file=file)    
+
+    await interaction.followup.send(file=file)  # Use followup instead of response.send_message
+
 
 #on bot
 @client.event
@@ -392,14 +397,15 @@ async def on_ready():
     await tree.sync()
     change_status.start()
 
-@client.event
-async def on_message(message):
-    if client.user in message.mentions and not message.author.bot:
-        random_response = random.randint(1, 2)
-        if random_response == 1:
-            await message.channel.send(f"Go do something more productive")
-        else:
-            await message.channel.send(f"Get a life")
+# @client.event
+# async def on_message(message):
+#     print(message.content)
+#     if client.user in message.mentions and not message.author.bot:
+#         random_response = random.randint(1, 2)
+#         if random_response == 1:
+#             await message.channel.send(f"Go do something more productive")
+#         else:
+#             await message.channel.send(f"Get a life")
 
 @client.event
 async def on_message(message):
@@ -411,6 +417,19 @@ async def on_message(message):
                     await message.delete()
                     await message.channel.send(f"{message.author} said a bad word it hurt my feelings")
                     break  # Exit the loop once a blacklisted word is found
+            if client.user in message.mentions:
+                random_response = random.randint(1, 2)
+                if random_response == 1:
+                    await message.channel.send(f"Go do something more productive")
+                else:
+                    await message.channel.send(f"Get a life")
+        else:
+            if client.user in message.mentions:
+                random_response = random.randint(1, 2)
+                if random_response == 1:
+                    await message.channel.send(f"Go do something more productive")
+                else:
+                    await message.channel.send(f"Get a life")
 
 # Load welcome function status from a JSON file
 try:
